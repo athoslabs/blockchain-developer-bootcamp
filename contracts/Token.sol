@@ -11,10 +11,17 @@ contract Token {
 
     // track balances
     mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
 
     event Transfer(
         address indexed from, 
         address indexed to, 
+        uint256 value
+    );
+
+    event Approval(
+        address indexed owner, 
+        address indexed spender, 
         uint256 value
     );
 
@@ -38,12 +45,23 @@ contract Token {
         require(balanceOf[msg.sender] >= _value);
         require(_to != address(0));
         
-        // deduct tokens from spender
         balanceOf[msg.sender] = balanceOf[msg.sender] - _value;
-        // credit tokens to reciever
         balanceOf[_to] = balanceOf[_to] + _value;
 
         emit Transfer(msg.sender, _to, _value);
+
+        return true;
+    }
+
+    function approve(address _spender, uint256 _value) 
+        public 
+        returns(bool success) 
+    {
+        require(_spender != address(0));
+
+        allowance[msg.sender][_spender] = _value;
+
+        emit Approval(msg.sender, _spender, _value);
 
         return true;
     }

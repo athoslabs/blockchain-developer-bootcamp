@@ -7,7 +7,7 @@ const tokens = (n) => {
 
 describe('Token', ()=> {
 
-    let token, accounts, deployer
+    let token, accounts, deployer, exchange
 
     beforeEach(async () => {
         const Token = await ethers.getContractFactory('Token')
@@ -16,6 +16,7 @@ describe('Token', ()=> {
         accounts = await ethers.getSigners()
         deployer = accounts[0]
         reciever = accounts[1]
+        exchange = accounts[2]
     })
 
     describe('Deployment', () => {
@@ -80,6 +81,39 @@ describe('Token', ()=> {
             it('Rejects invalid recipient', async () => {
                 const amount = tokens(100)
                 await expect(token.connect(deployer).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
+            })
+        })
+    })
+
+    describe('Approving Tokens', () => {
+        let amount, transaction, result
+
+        beforeEach(async () => {
+            amount = tokens(100)
+            transaction = await token.connect(deployer).approve(exchange.address, amount)
+            result = await transaction.wait()
+        })
+        
+        describe('Success', () => {
+            it('Allocates an allowance for delegated token spending', async () => {
+                expect(await token.allowance(deployer.address, exchange.address)).to.equal(amount)
+            })
+
+            it('Emits an Approval event', async () => {
+                const eventTransaction = result.events[0]
+                expect(eventTransaction.event).to.equal('Approval')
+    
+                const args = eventTransaction.args
+                expect(args.owner).to.equal(deployer.address)
+                expect(args.spender).to.equal(exchange.address)
+                expect(args.value).to.equal(amount) 
+            })
+        })
+
+        describe('Failure', () => {
+            it('Rejects invalid spenders', async () => {
+                const amount = tokens(100)
+                await expect(token.connect(deployer).approve('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
             })
         })
     })
